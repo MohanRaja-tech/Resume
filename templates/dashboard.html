@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Summary Generator</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="20" cy="20" r="1" fill="white" opacity="0.1"/><circle cx="80" cy="40" r="1" fill="white" opacity="0.1"/><circle cx="40" cy="80" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            position: relative;
+            text-align: left;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .user-info {
+            margin-top: 20px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            position: relative;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .form-container {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .char-count {
+            font-size: 0.8rem;
+            color: #666;
+            text-align: right;
+            margin-top: 5px;
+        }
+
+        .generate-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .generate-btn:active {
+            transform: translateY(0);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+            margin-top: 30px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 1px solid #e1e5e9;
+        }
+
+        .results h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .summary-option {
+            background: white;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .summary-option:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+        }
+
+        .summary-option.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .summary-text {
+            line-height: 1.6;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .copy-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #218838;
+        }
+
+        .copied {
+            background: #6c757d !important;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .form-container {
+                padding: 20px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .results {
+                padding: 20px;
+            }
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .user-info {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .tips {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .tips h4 {
+            color: #1976d2;
+            margin-bottom: 8px;
+        }
+
+        .tips ul {
+            color: #424242;
+            padding-left: 20px;
+        }
+
+        .tips li {
+            margin-bottom: 5px;
+        }
+
+        /* Usage tracker styles */
+        .usage-tracker {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .usage-info {
+            font-size: 0.9rem;
+        }
+
+        .usage-count {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .premium-badge {
+            background: #ffd700;
+            color: #333;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        /* Premium Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+            animation: modalSlideIn 0.3s ease;
+            overflow: hidden;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        .modal-header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .premium-features {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+
+        .premium-features li {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+        }
+
+        .premium-features li:last-child {
+            border-bottom: none;
+        }
+
+        .premium-features li i {
+            color: #28a745;
+            margin-right: 10px;
+            width: 20px;
+        }
+
+        .pricing {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .price {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .price-period {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .upgrade-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .upgrade-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
+        }
+
+        .limit-reached {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .limit-reached h4 {
+            margin: 0 0 10px 0;
+            color: #d63031;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="back-btn" onclick="logout()" title="Logout">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+            <h1><i class="fas fa-file-alt"></i> Resume Summary Generator</h1>
+            <p>Create professional resume summaries that stand out</p>
+            <div class="user-info">
+                Welcome, <span id="userName">User</span>!
+            </div>
+        </div>
+
+        <div class="form-container">
+            <!-- Usage Tracker -->
+            <div class="usage-tracker" id="usageTracker" style="display: none;">
+                <div class="usage-info">
+                    <div>Free Trial: <span class="usage-count" id="usageCount">0/3</span> generations used</div>
+                </div>
+                <div id="premiumBadge" class="premium-badge" style="display: none;">
+                    <i class="fas fa-crown"></i> PREMIUM
+                </div>
+            </div>
+
+            <div class="tips">
+                <h4><i class="fas fa-lightbulb"></i> Tips for Best Results:</h4>
+                <ul>
+                    <li>Be specific about your achievements with numbers</li>
+                    <li>Include relevant technical skills for your field</li>
+                    <li>Mention specific software and tools you use</li>
+                    <li>Keep descriptions clear and professional</li>
+                </ul>
+            </div>
+
+            <form id="resumeForm">
+                <div class="form-group">
+                    <label for="jobTitle"><i class="fas fa-briefcase"></i> Current or Most Recent Job Title</label>
+                    <input type="text" id="jobTitle" name="current_job_title" 
+                           placeholder="e.g., Senior Marketing Manager" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="jobDescription"><i class="fas fa-tasks"></i> Describe Your Current Role and Key Responsibilities</label>
+                    <textarea id="jobDescription" name="job_description" 
+                              placeholder="Describe what you do in your current role, your main responsibilities, and who you work with..." 
+                              maxlength="500" required></textarea>
+                    <div class="char-count">
+                        <span id="descCount">0</span>/500 characters
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="experience"><i class="fas fa-calendar-alt"></i> Years of Experience</label>
+                        <input type="number" id="experience" name="years_experience" 
+                               placeholder="e.g., 5" min="0" step="0.5" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="education"><i class="fas fa-graduation-cap"></i> Education Background</label>
+                        <input type="text" id="education" name="education" 
+                               placeholder="e.g., MBA in Finance, Harvard Business School" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="achievements"><i class="fas fa-trophy"></i> Key Achievements with Specific Numbers</label>
+                    <textarea id="achievements" name="achievements" 
+                              placeholder="e.g., Improved website conversion rate by 25%, managed team of 8 people, completed 12 major projects..." 
+                              maxlength="300" required></textarea>
+                    <div class="char-count">
+                        <span id="achieveCount">0</span>/300 characters
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="skills"><i class="fas fa-cogs"></i> Technical Skills and Software</label>
+                    <textarea id="skills" name="technical_skills" 
+                              placeholder="e.g., Excel, Salesforce, Google Analytics, PMP Certification..." 
+                              maxlength="200" required></textarea>
+                    <div class="char-count">
+                        <span id="skillsCount">0</span>/200 characters
+                    </div>
+                </div>
+
+                <button type="submit" class="generate-btn">
+                    <i class="fas fa-magic"></i> Generate Summary
+                </button>
+            </form>
+
+            <!-- Test Payment Button (Remove in production) -->
+            <div style="margin-top: 20px; text-align: center;">
+                <button onclick="showPremiumModal()" class="generate-btn" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);">
+                    <i class="fas fa-crown"></i> Get Premium
+                </button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <span style="margin-left: 15px;">Generating your professional summary...</span>
+            </div>
+
+            <div class="results" id="results">
+                <h3><i class="fas fa-star"></i> Your Professional Summaries</h3>
+                <div id="summaryOptions"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Premium Upgrade Modal -->
+    <div id="premiumModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close">&times;</span>
+                <h2><i class="fas fa-crown"></i> Upgrade to Premium</h2>
+                <p>Unlock unlimited resume generations and advanced features</p>
+            </div>
+            <div class="modal-body">
+                <div class="limit-reached">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Free Trial Limit Reached</h4>
+                    <p>You've used all 3 free generations. Upgrade to Premium for unlimited access!</p>
+                </div>
+                
+                <ul class="premium-features">
+                    <li><i class="fas fa-infinity"></i> Unlimited resume summary generations</li>
+                    <li><i class="fas fa-magic"></i> Advanced AI-powered writing styles</li>
+                    <li><i class="fas fa-download"></i> Export summaries as PDF</li>
+                    <li><i class="fas fa-palette"></i> Custom formatting options</li>
+                    <li><i class="fas fa-headset"></i> Priority customer support</li>
+                    <li><i class="fas fa-lock"></i> Ad-free experience</li>
+                </ul>
+                
+                <div class="pricing">
+                    <div class="price">₹1000<span class="price-period">/month</span></div>
+                    <p>Cancel anytime</p>
+                </div>
+                
+                <button class="upgrade-btn" onclick="initializeRazorpayPayment()">
+                    <i class="fas fa-crown"></i> Upgrade to Premium Now
+                </button>
+                
+                <p style="text-align: center; margin-top: 15px; color: #666; font-size: 0.9rem;">
+                    <i class="fas fa-shield-alt"></i> Secure payment powered by Razorpay
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load usage status on page load
+        window.addEventListener('load', function() {
+            loadUsageStatus();
+        });
+
+        // Character counters
+        document.getElementById('jobDescription').addEventListener('input', function() {
+            document.getElementById('descCount').textContent = this.value.length;
+        });
+
+        document.getElementById('achievements').addEventListener('input', function() {
+            document.getElementById('achieveCount').textContent = this.value.length;
+        });
+
+        document.getElementById('skills').addEventListener('input', function() {
+            document.getElementById('skillsCount').textContent = this.value.length;
+        });
+
+        // Load usage status from server
+        async function loadUsageStatus() {
+            try {
+                const response = await fetch('/api/usage-status', {
+                    credentials: 'include'
+                });
+                
+                // Check for authentication errors
+                if (response.status === 401) {
+                    console.log('Authentication error, redirecting to login');
+                    window.location.href = '/auth';
+                    return;
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateUsageDisplay(result.data);
+                    // Update user name
+                    if (result.data.user_name) {
+                        document.getElementById('userName').textContent = result.data.user_name;
+                    }
+                } else {
+                    // Redirect to login if not authenticated
+                    console.log('Usage status failed, redirecting to login');
+                    window.location.href = '/auth';
+                }
+            } catch (error) {
+                console.error('Failed to load usage status:', error);
+                window.location.href = '/auth';
+            }
+        }        // Logout function
+        async function logout() {
+            try {
+                const response = await fetch('/logout', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    window.location.href = '/auth';
+                } else {
+                    console.error('Logout failed');
+                    // Force redirect anyway
+                    window.location.href = '/auth';
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                // Force redirect anyway
+                window.location.href = '/auth';
+            }
+        }
+
+        // Update usage display
+        function updateUsageDisplay(usageData) {
+            const usageTracker = document.getElementById('usageTracker');
+            const usageCount = document.getElementById('usageCount');
+            const premiumBadge = document.getElementById('premiumBadge');
+            
+            if (usageData.is_premium) {
+                usageTracker.style.display = 'block'; // Show tracker only for premium users
+                usageCount.textContent = 'Unlimited';
+                usageTracker.style.background = 'linear-gradient(135deg, #ffd700 0%, #ffb347 100%)';
+                usageTracker.style.color = '#333';
+                premiumBadge.style.display = 'block';
+                document.querySelector('.usage-info div').innerHTML = 
+                    '<i class="fas fa-crown"></i> Premium Account - Unlimited Generations';
+            } else {
+                usageTracker.style.display = 'none'; // Hide tracker for free users
+            }
+        }
+
+        // Form submission
+        document.getElementById('resumeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            // Show loading
+            document.getElementById('loading').style.display = 'flex';
+            document.getElementById('results').style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/generate-summary', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                    credentials: 'include'
+                });
+                
+                const result = await response.json();
+                
+                // Hide loading
+                document.getElementById('loading').style.display = 'none';
+                
+                if (result.success) {
+                    displayResults(result.data);
+                    
+                    // Update usage display if provided
+                    if (result.usage_info) {
+                        updateUsageDisplay(result.usage_info);
+                    }
+                } else if (result.error === 'free_trial_exceeded') {
+                    showPremiumModal();
+                } else {
+                    showError(result.message || 'Failed to generate summary');
+                }
+                
+            } catch (error) {
+                // Hide loading and show error
+                document.getElementById('loading').style.display = 'none';
+                showError('Network error. Please try again.');
+            }
+        });
+
+        // Show premium modal
+        function showPremiumModal() {
+            document.getElementById('premiumModal').style.display = 'block';
+        }
+
+        // Hide premium modal
+        function hidePremiumModal() {
+            document.getElementById('premiumModal').style.display = 'none';
+        }
+
+        // Initialize Razorpay payment
+        async function initializeRazorpayPayment() {
+            console.log('initializeRazorpayPayment called');
+            try {
+                console.log('Creating Razorpay order...');
+                // Create order on backend
+                const response = await fetch('/api/create-razorpay-order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        amount: 100000, // ₹1000 in paise (smallest unit)
+                        currency: 'INR'
+                    })
+                });
+                
+                console.log('Response status:', response.status);
+                const orderData = await response.json();
+                console.log('Order data:', orderData);
+                
+                if (!orderData.success) {
+                    console.error('Order creation failed:', orderData);
+                    showError('Failed to create payment order. Please try again.');
+                    return;
+                }
+                
+                console.log('Initializing Razorpay checkout...');
+                // Initialize Razorpay
+                const options = {
+                    key: orderData.razorpay_key, // Your Razorpay key from backend
+                    amount: orderData.amount,
+                    currency: orderData.currency,
+                    name: 'Resume Summary Generator',
+                    description: 'Premium Subscription - ₹1000/month',
+                    order_id: orderData.order_id,
+                    handler: function(response) {
+                        console.log('Payment successful:', response);
+                        // Payment successful
+                        verifyPayment(response);
+                    },
+                    prefill: {
+                        name: document.getElementById('userName').textContent,
+                        email: '', // You can add email field if needed
+                    },
+                    theme: {
+                        color: '#667eea'
+                    },
+                    modal: {
+                        ondismiss: function() {
+                            console.log('Payment cancelled by user');
+                        }
+                    }
+                };
+                
+                const rzp = new Razorpay(options);
+                rzp.open();
+                
+            } catch (error) {
+                console.error('Payment initialization error:', error);
+                showError('Failed to initialize payment. Please try again.');
+            }
+        }
+        
+        // Verify payment on backend
+        async function verifyPayment(paymentResponse) {
+            try {
+                const response = await fetch('/api/verify-razorpay-payment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        razorpay_order_id: paymentResponse.razorpay_order_id,
+                        razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                        razorpay_signature: paymentResponse.razorpay_signature
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    hidePremiumModal();
+                    loadUsageStatus(); // Refresh usage display
+                    showSuccess('🎉 Payment successful! Welcome to Premium! You now have unlimited generations.');
+                } else {
+                    showError('Payment verification failed. Please contact support.');
+                }
+            } catch (error) {
+                console.error('Payment verification error:', error);
+                showError('Payment verification failed. Please contact support.');
+            }
+        }
+        
+        // Legacy upgrade function (kept for compatibility)
+        async function upgradeToPremium() {
+            initializeRazorpayPayment();
+        }
+
+        // Modal event listeners
+        document.querySelector('.close').addEventListener('click', hidePremiumModal);
+        
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('premiumModal');
+            if (event.target === modal) {
+                hidePremiumModal();
+            }
+        });
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${message}`;
+            
+            const formContainer = document.querySelector('.form-container');
+            formContainer.insertBefore(errorDiv, formContainer.firstChild);
+            
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 5000);
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            const successDiv = document.createElement('div');
+            successDiv.style.cssText = `
+                background: #d4edda;
+                color: #155724;
+                padding: 15px;
+                border-radius: 8px;
+                margin-bottom: 20px;
+                border: 1px solid #c3e6cb;
+                text-align: center;
+            `;
+            successDiv.innerHTML = message;
+            
+            const formContainer = document.querySelector('.form-container');
+            formContainer.insertBefore(successDiv, formContainer.firstChild);
+            
+            setTimeout(() => {
+                successDiv.remove();
+            }, 5000);
+        }
+        
+        function displayResults(data) {
+            const resultsDiv = document.getElementById('results');
+            const optionsDiv = document.getElementById('summaryOptions');
+            
+            optionsDiv.innerHTML = '';
+            
+            Object.keys(data).forEach((version, index) => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'summary-option';
+                optionDiv.innerHTML = `
+                    <div class="summary-text">${data[version]}</div>
+                    <button class="copy-btn" onclick="copyToClipboard(this, '${data[version].replace(/'/g, "\\'")}')">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                `;
+                
+                optionDiv.addEventListener('click', function() {
+                    document.querySelectorAll('.summary-option').forEach(el => el.classList.remove('selected'));
+                    this.classList.add('selected');
+                });
+                
+                optionsDiv.appendChild(optionDiv);
+            });
+            
+            resultsDiv.style.display = 'block';
+            resultsDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function copyToClipboard(button, text) {
+            navigator.clipboard.writeText(text).then(function() {
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                button.classList.add('copied');
+                
+                setTimeout(function() {
+                    button.innerHTML = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+        
+        // Auto-resize textareas
+        document.querySelectorAll('textarea').forEach(textarea => {
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = this.scrollHeight + 'px';
+            });
+        });
+    </script>
+</body>
+</html>
