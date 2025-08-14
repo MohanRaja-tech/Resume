@@ -11,13 +11,5 @@
       "src": "/(.*)",
       "dest": "index.py"
     }
-  ],
-  "env": {
-    "PYTHON_VERSION": "3.9"
-  },
-  "functions": {
-    "index.py": {
-      "maxDuration": 30
-    }
-  }
+  ]
 }
