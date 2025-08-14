@@ -14,13 +14,18 @@ import requests
 # Load environment variables from .env file
 load_dotenv()
 
-# Initialize database after environment variables are loaded
-from database import initialize_database
-db = initialize_database()
-
+# Initialize Flask app first
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-change-this-in-production')
 CORS(app, supports_credentials=True)
+
+# Initialize database after environment variables are loaded
+try:
+    from database import initialize_database
+    db = initialize_database()
+except Exception as e:
+    print(f"Database initialization error: {e}")
+    db = None
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -69,18 +74,36 @@ def get_current_user():
         logger.info("No user_id in session")
         return None
     
-    user_id = session['user_id']
-    logger.info(f"Looking for user_id: {user_id}")
-    user = db.get_user_by_id(user_id)
-    logger.info(f"Database returned user: {user}")
-    
-    # If user not found in database, clear the invalid session
-    if user is None:
-        logger.warning(f"User {user_id} not found in database, clearing session")
-        session.clear()
+    if not db:
+        logger.error("Database not available")
         return None
     
-    return user
+    user_id = session['user_id']
+    logger.info(f"Looking for user_id: {user_id}")
+    
+    try:
+        user = db.get_user_by_id(user_id)
+        logger.info(f"Database returned user: {user}")
+        
+        # If user not found in database, clear the invalid session
+        if user is None:
+            logger.warning(f"User {user_id} not found in database, clearing session")
+            session.clear()
+            return None
+        
+        return user
+    except Exception as e:
+        logger.error(f"Database error in get_current_user: {e}")
+        return None
+
+@app.route('/health')
+def health_simple():
+    """Simple health check"""
+    return jsonify({
+        'status': 'ok',
+        'message': 'Flask app is running',
+        'database': 'connected' if db else 'not connected'
+    })
 
 @app.route('/')
 def index():

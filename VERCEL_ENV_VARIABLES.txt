@@ -1,0 +1,62 @@
+VERCEL ENVIRONMENT VARIABLES
+=====================================
+
+Copy these EXACT values into Vercel Environment Variables:
+
+1. Variable Name: SECRET_KEY
+   Value: sk_5f8a2b9c4e6d1a3b7f9e2c8d4a6b9e3f7c1a5b8d2e6f9c3a7b4e8d1f5a9c2b6e8d3f
+
+2. Variable Name: FLASK_ENV
+   Value: production
+
+3. Variable Name: MONGODB_URI
+   Value: mongodb+srv://mohantwo3:Mohan%402006@cluster0.gs12h0u.mongodb.net/resume_generator?retryWrites=true&w=majority
+
+4. Variable Name: RAZORPAY_KEY_ID
+   Value: rzp_live_R5AQxNLHPa1UB2
+
+5. Variable Name: RAZORPAY_KEY_SECRET
+   Value: zqWbA2CGQCFCrLvPsuclm1Ii
+
+6. Variable Name: CUSTOM_API_KEY
+   Value: no_auth_required
+
+7. Variable Name: FREE_TRIAL_LIMIT
+   Value: 3
+
+=====================================
+IMPORTANT NOTES:
+=====================================
+
+- Add ALL 7 variables in Vercel Environment Variables section
+- Copy the values EXACTLY as shown (no extra spaces)
+- Don't include PORT variable (Vercel handles this automatically)
+- Make sure to set Environment for: Production, Preview, Development (all three)
+
+=====================================
+HOW TO ADD IN VERCEL:
+=====================================
+
+1. Go to your Vercel project settings
+2. Click "Environment Variables" in left sidebar
+3. For each variable:
+   - Enter the "Variable Name" (e.g., SECRET_KEY)
+   - Enter the "Value" (copy exactly from above)
+   - Select "Production", "Preview", "Development" (all three)
+   - Click "Add"
+4. Repeat for all 7 variables
+5. Redeploy your project after adding all variables
+
+=====================================
+VERIFICATION CHECKLIST:
+=====================================
+
+□ SECRET_KEY - Flask session security
+□ FLASK_ENV - Set to production
+□ MONGODB_URI - Database connection
+□ RAZORPAY_KEY_ID - Payment gateway (live key)
+□ RAZORPAY_KEY_SECRET - Payment gateway secret
+□ CUSTOM_API_KEY - AWS API authentication
+□ FREE_TRIAL_LIMIT - User trial limit (3 generations)
+
+Total: 7 environment variables must be added to Vercel
