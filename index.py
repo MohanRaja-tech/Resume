@@ -10,6 +10,9 @@ logger = logging.getLogger(__name__)
 # Add the current directory to Python path
 sys.path.insert(0, os.path.dirname(__file__))
 
+# Store the main error for the error app
+main_app_error = None
+
 try:
     # Import the main Flask application
     from app import app
@@ -17,6 +20,7 @@ try:
     application = app
     
 except Exception as e:
+    main_app_error = e
     logger.error(f"Error importing main app: {e}")
     logger.error(f"Traceback: {traceback.format_exc()}")
     
@@ -28,7 +32,7 @@ except Exception as e:
     def error():
         return jsonify({
             'error': 'Application failed to start',
-            'details': str(e),
+            'details': str(main_app_error),
             'message': 'Check server logs for more details'
         }), 500
     
