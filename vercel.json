@@ -14,10 +14,5 @@
   ],
   "env": {
     "PYTHONPATH": "."
-  },
-  "functions": {
-    "index.py": {
-      "maxDuration": 10
-    }
   }
 }
