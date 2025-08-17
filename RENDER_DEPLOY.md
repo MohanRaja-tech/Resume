@@ -21,7 +21,7 @@ Add these environment variables in Render dashboard:
 ```
 SECRET_KEY=sk_5f8a2b9c4e6d1a3b7f9e2c8d4a6b9e3f7c1a5b8d2e6f9c3a7b4e8d1f5a9c2b6e8d3f
 FLASK_ENV=production
-MONGODB_URI=mongodb+srv://mohantwo3:Mohan%402006@cluster0.gs12h0u.mongodb.net/resume_generator?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://mohantwo3:Mohan%402006@cluster0.gs12h0u.mongodb.net/resume_generator?retryWrites=true&w=majority&ssl_cert_reqs=CERT_NONE
 RAZORPAY_KEY_ID=rzp_live_R5AQxNLHPa1UB2
 RAZORPAY_KEY_SECRET=zqWbA2CGQCFCrLvPsuclm1Ii
 CUSTOM_API_KEY=no_auth_required

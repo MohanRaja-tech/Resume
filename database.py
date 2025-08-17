@@ -24,8 +24,18 @@ class Database:
             if not self.mongo_uri:
                 logger.warning("No MongoDB URI found in environment variables")
                 return
-                
-            self.client = MongoClient(self.mongo_uri)
+            
+            # For Render deployment, disable SSL certificate verification
+            # to fix SSL handshake issues
+            import ssl
+            self.client = MongoClient(
+                self.mongo_uri,
+                ssl_cert_reqs=ssl.CERT_NONE,
+                tlsAllowInvalidCertificates=True,
+                serverSelectionTimeoutMS=30000,
+                connectTimeoutMS=30000,
+                socketTimeoutMS=30000
+            )
             self.db = self.client.resume_generator
             # Test connection
             self.client.admin.command('ping')
