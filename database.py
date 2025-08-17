@@ -39,13 +39,15 @@ class Database:
     def create_user_account(self, name, email, password):
         """Create a new user account with authentication"""
         if self.db is None:
-            return None
+            logger.error("Database connection not available")
+            return {"error": "Database connection failed. Please try again later."}
         
         try:
             # Check if user already exists
             existing_user = self.db.users.find_one({"email": email})
             if existing_user:
-                return None  # User already exists
+                logger.info(f"User already exists: {email}")
+                return {"error": "An account with this email already exists."}
             
             # Hash password
             password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
@@ -66,23 +68,29 @@ class Database:
             # Insert user
             result = self.db.users.insert_one(user_doc)
             if result.inserted_id:
+                logger.info(f"User created successfully: {email}")
                 # Return user without password hash
                 del user_doc['password_hash']
                 return user_doc
+            else:
+                logger.error(f"Failed to insert user: {email}")
+                return {"error": "Failed to create account. Please try again."}
             
         except Exception as e:
             logger.error(f"Error creating user account: {e}")
-            return None
+            return {"error": f"Database error: {str(e)}"}
     
     def authenticate_user(self, email, password):
         """Authenticate user with email and password"""
         if self.db is None:
-            return None
+            logger.error("Database connection not available")
+            return {"error": "Database connection failed. Please try again later."}
         
         try:
             user = self.db.users.find_one({"email": email})
             if not user:
-                return None
+                logger.info(f"User not found: {email}")
+                return {"error": "Invalid email or password."}
             
             # Check password
             if bcrypt.checkpw(password.encode('utf-8'), user['password_hash']):
@@ -93,12 +101,15 @@ class Database:
                 )
                 # Remove password hash from returned data
                 del user['password_hash']
+                logger.info(f"User authenticated successfully: {email}")
                 return user
             else:
-                return None
+                logger.info(f"Invalid password for user: {email}")
+                return {"error": "Invalid email or password."}
+                
         except Exception as e:
             logger.error(f"Error authenticating user: {e}")
-            return None
+            return {"error": f"Authentication error: {str(e)}"}
     
     def get_user_by_id(self, user_id):
         """Get user by user_id"""

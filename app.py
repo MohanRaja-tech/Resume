@@ -130,6 +130,42 @@ def dashboard():
     """Serve the main dashboard page for logged-in users"""
     return render_template('dashboard.html')
 
+@app.route('/api/debug/db', methods=['GET'])
+def debug_db():
+    """Debug endpoint to check database connectivity"""
+    try:
+        if not db:
+            return jsonify({
+                'status': 'error',
+                'message': 'Database object not initialized',
+                'mongodb_uri_exists': bool(os.getenv('MONGODB_URI'))
+            })
+        
+        if not db.db:
+            return jsonify({
+                'status': 'error', 
+                'message': 'Database connection failed',
+                'mongodb_uri_exists': bool(os.getenv('MONGODB_URI'))
+            })
+        
+        # Test database connection
+        db.client.admin.command('ping')
+        user_count = db.db.users.count_documents({})
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Database connected successfully',
+            'user_count': user_count,
+            'mongodb_uri_exists': bool(os.getenv('MONGODB_URI'))
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Database error: {str(e)}',
+            'mongodb_uri_exists': bool(os.getenv('MONGODB_URI'))
+        })
+
 @app.route('/api/auth/signup', methods=['POST'])
 def signup():
     """Handle user signup"""
@@ -201,22 +237,29 @@ def login():
             }), 400
         
         # Authenticate user
-        user = db.authenticate_user(data['email'], data['password'])
+        result = db.authenticate_user(data['email'], data['password'])
         
-        if user:
+        # Check for error response
+        if result and 'error' in result:
+            return jsonify({
+                'success': False,
+                'message': result['error']
+            }), 401
+        
+        if result:
             # Set session
-            session['user_id'] = user['user_id']
-            session['user_name'] = user['name']
-            session['user_email'] = user['email']
+            session['user_id'] = result['user_id']
+            session['user_name'] = result['name']
+            session['user_email'] = result['email']
             
-            logger.info(f"User logged in: {user['email']}")
+            logger.info(f"User logged in: {result['email']}")
             
             return jsonify({
                 'success': True,
                 'message': 'Login successful!',
                 'user': {
-                    'name': user['name'],
-                    'email': user['email']
+                    'name': result['name'],
+                    'email': result['email']
                 }
             })
         else:
