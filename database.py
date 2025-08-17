@@ -30,8 +30,9 @@ class Database:
             import ssl
             self.client = MongoClient(
                 self.mongo_uri,
-                ssl_cert_reqs=ssl.CERT_NONE,
+                tls=True,
                 tlsAllowInvalidCertificates=True,
+                tlsCAFile=None,
                 serverSelectionTimeoutMS=30000,
                 connectTimeoutMS=30000,
                 socketTimeoutMS=30000
