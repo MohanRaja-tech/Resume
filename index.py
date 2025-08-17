@@ -1,5 +1,6 @@
 import os
 import sys
+import traceback
 
 # Add the current directory to Python path
 sys.path.insert(0, os.path.dirname(__file__))
@@ -16,6 +17,9 @@ try:
         
 except Exception as e:
     print(f"Error importing app: {e}")
+    print("Full traceback:")
+    traceback.print_exc()
+    
     # Create a minimal error app
     from flask import Flask
     app = Flask(__name__)
