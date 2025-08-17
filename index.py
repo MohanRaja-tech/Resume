@@ -1,56 +1,43 @@
 import os
 import sys
+import traceback
 import logging
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Add the current directory to Python path
 sys.path.insert(0, os.path.dirname(__file__))
 
-logger.info("Starting index.py...")
-
-# Test with ultra-minimal app first
 try:
-    logger.info("Trying ultra-minimal test app...")
-    from test_app import app as test_app
-    logger.info("Successfully imported test app")
-    application = test_app
+    # Import the main Flask application
+    from app import app
+    logger.info("Successfully imported main app")
+    application = app
     
-except Exception as test_error:
-    logger.error(f"Error importing test app: {test_error}")
+except Exception as e:
+    logger.error(f"Error importing main app: {e}")
+    logger.error(f"Traceback: {traceback.format_exc()}")
     
-    # Create the most basic Flask app possible
-    try:
-        from flask import Flask, jsonify
-        app = Flask(__name__)
-        
-        @app.route('/')
-        def basic():
-            return jsonify({
-                'status': 'basic_flask_working',
-                'error': f"Test app failed: {str(test_error)}",
-                'python_version': sys.version
-            })
-        
-        application = app
-        logger.info("Created basic Flask app")
-        
-    except Exception as basic_error:
-        logger.error(f"Even basic Flask app failed: {basic_error}")
-        # Last resort
-        def application(environ, start_response):
-            status = '200 OK'
-            headers = [('Content-type', 'text/plain')]
-            start_response(status, headers)
-            return [b'Raw WSGI app working - Flask import failed']
+    # Create a minimal error app
+    from flask import Flask, jsonify
+    app = Flask(__name__)
+    
+    @app.route('/')
+    def error():
+        return jsonify({
+            'error': 'Application failed to start',
+            'details': str(e),
+            'message': 'Check server logs for more details'
+        }), 500
+    
+    @app.route('/health')
+    def health():
+        return jsonify({'status': 'error', 'message': 'Application not healthy'})
+    
+    application = app
 
-logger.info("Index.py setup complete")
-
-# For local testing
+# For local development
 if __name__ == "__main__":
-    if hasattr(application, 'run'):
-        application.run(debug=True, host='0.0.0.0', port=5000)
-    else:
-        print("WSGI application ready")
+    application.run(debug=True, host='0.0.0.0', port=5000)
