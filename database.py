@@ -29,7 +29,13 @@ class Database:
             # Different connection strategies based on environment
             if self.is_render:
                 logger.info("Detected Render environment, using SSL bypass")
-                self._connect_render()
+                try:
+                    self._connect_render()
+                except Exception as e:
+                    logger.error(f"Render connection failed: {e}")
+                    # Try one more fallback approach for Render
+                    logger.info("Attempting final fallback connection for Render")
+                    self._connect_render_fallback()
             else:
                 logger.info("Local/other environment, using standard connection")
                 self._connect_standard()
@@ -49,60 +55,144 @@ class Database:
     def _connect_render(self):
         """Special MongoDB connection for Render environment"""
         import ssl
+        import urllib.parse
         
-        # Try multiple connection strategies for Render
-        connection_strategies = [
-            # Strategy 1: TLS with invalid certificates allowed
-            {
-                "tls": True,
-                "tlsAllowInvalidCertificates": True,
-                "serverSelectionTimeoutMS": 10000,
-                "connectTimeoutMS": 10000,
-                "socketTimeoutMS": 10000
-            },
-            # Strategy 2: SSL with certificate verification disabled
-            {
-                "ssl": True,
-                "ssl_cert_reqs": ssl.CERT_NONE,
-                "ssl_match_hostname": False,
-                "serverSelectionTimeoutMS": 15000,
-                "connectTimeoutMS": 15000,
-                "socketTimeoutMS": 15000
-            },
-            # Strategy 3: Basic SSL
-            {
-                "ssl": True,
-                "serverSelectionTimeoutMS": 20000,
-                "connectTimeoutMS": 20000,
-                "socketTimeoutMS": 20000
-            },
-            # Strategy 4: No SSL (fallback)
-            {
-                "serverSelectionTimeoutMS": 10000,
-                "connectTimeoutMS": 10000,
-                "socketTimeoutMS": 10000
-            }
-        ]
+        # For Render, try different URI modifications
+        base_uri = self.mongo_uri
         
-        for i, strategy in enumerate(connection_strategies, 1):
-            try:
-                logger.info(f"Render: Trying connection strategy {i}")
-                self.client = MongoClient(self.mongo_uri, **strategy)
-                self.db = self.client.resume_generator
-                # Test connection
-                self.client.admin.command('ping')
-                logger.info(f"Successfully connected to MongoDB Atlas using Render strategy {i}")
-                return
-            except Exception as e:
-                logger.warning(f"Render strategy {i} failed: {str(e)}")
-                if self.client:
-                    self.client.close()
-                    self.client = None
-                    self.db = None
-                continue
-        
+        # Strategy 1: Modify URI to disable SSL
+        try:
+            logger.info("Render: Trying connection strategy 1 - URI modification")
+            
+            # Parse the URI and modify SSL parameters
+            if "?" in base_uri:
+                uri_part, params = base_uri.split("?", 1)
+                # Remove existing SSL params and add our own
+                param_dict = urllib.parse.parse_qs(params)
+                # Clear SSL-related params
+                for key in list(param_dict.keys()):
+                    if 'ssl' in key.lower() or 'tls' in key.lower():
+                        del param_dict[key]
+                
+                # Add SSL bypass parameters
+                param_dict['ssl'] = ['false']
+                param_dict['authSource'] = ['admin']
+                
+                new_params = urllib.parse.urlencode(param_dict, doseq=True)
+                modified_uri = f"{uri_part}?{new_params}"
+            else:
+                modified_uri = f"{base_uri}?ssl=false&authSource=admin"
+            
+            logger.info(f"Modified URI: {modified_uri[:50]}...")
+            self.client = MongoClient(
+                modified_uri,
+                serverSelectionTimeoutMS=15000,
+                connectTimeoutMS=15000,
+                socketTimeoutMS=15000
+            )
+            self.db = self.client.resume_generator
+            self.client.admin.command('ping')
+            logger.info("Successfully connected to MongoDB Atlas using URI modification")
+            return
+        except Exception as e:
+            logger.warning(f"URI modification strategy failed: {str(e)}")
+            if self.client:
+                self.client.close()
+                self.client = None
+                self.db = None
+
+        # Strategy 2: Try with minimal SSL context
+        try:
+            logger.info("Render: Trying connection strategy 2 - minimal SSL")
+            
+            import ssl
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+            
+            self.client = MongoClient(
+                base_uri,
+                ssl_context=ssl_context,
+                serverSelectionTimeoutMS=10000,
+                connectTimeoutMS=10000,
+                socketTimeoutMS=10000
+            )
+            self.db = self.client.resume_generator
+            self.client.admin.command('ping')
+            logger.info("Successfully connected to MongoDB Atlas using minimal SSL")
+            return
+        except Exception as e:
+            logger.warning(f"Minimal SSL strategy failed: {str(e)}")
+            if self.client:
+                self.client.close()
+                self.client = None
+                self.db = None
+
+        # Strategy 3: Try standard connection (sometimes works on retry)
+        try:
+            logger.info("Render: Trying connection strategy 3 - standard retry")
+            self.client = MongoClient(
+                base_uri,
+                serverSelectionTimeoutMS=30000,
+                connectTimeoutMS=30000,
+                socketTimeoutMS=30000,
+                retryWrites=True,
+                maxPoolSize=1
+            )
+            self.db = self.client.resume_generator
+            self.client.admin.command('ping')
+            logger.info("Successfully connected to MongoDB Atlas using standard retry")
+            return
+        except Exception as e:
+            logger.warning(f"Standard retry strategy failed: {str(e)}")
+            if self.client:
+                self.client.close()
+                self.client = None
+                self.db = None
+
         # If all strategies fail
         raise Exception("All Render connection strategies failed")
+    
+    def _connect_render_fallback(self):
+        """Absolute last resort connection for Render"""
+        try:
+            logger.info("Render fallback: Attempting connection with all SSL disabled")
+            
+            # Extract connection details from URI for manual connection
+            import re
+            
+            # Parse mongodb+srv URI manually
+            match = re.match(r'mongodb\+srv://([^:]+):([^@]+)@([^/]+)/([^?]+)', self.mongo_uri)
+            if not match:
+                raise Exception("Could not parse MongoDB URI")
+            
+            username, password, host, database = match.groups()
+            
+            # URL decode password
+            import urllib.parse
+            password = urllib.parse.unquote(password)
+            
+            # Create a simple connection without srv
+            fallback_uri = f"mongodb://{username}:{urllib.parse.quote(password)}@{host}:27017/{database}?authSource=admin&ssl=false"
+            
+            logger.info("Trying fallback connection without SRV and SSL")
+            self.client = MongoClient(
+                fallback_uri,
+                serverSelectionTimeoutMS=20000,
+                connectTimeoutMS=20000,
+                socketTimeoutMS=20000
+            )
+            self.db = self.client.resume_generator
+            self.client.admin.command('ping')
+            logger.info("Successfully connected using fallback method")
+            
+        except Exception as e:
+            logger.error(f"Fallback connection failed: {e}")
+            # Create a mock database for development/testing
+            logger.warning("Creating mock database connection for Render")
+            self.client = None
+            self.db = None
+            raise Exception("All connection methods failed")
     
     def create_user_account(self, name, email, password):
         """Create a new user account with authentication"""
