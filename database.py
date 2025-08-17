@@ -16,6 +16,7 @@ class Database:
         self.mongo_uri = os.getenv('MONGODB_URI')
         self.client = None
         self.db = None
+        self.is_render = os.getenv('RENDER') is not None  # Detect Render environment
         self.connect()
     
     def connect(self):
@@ -25,27 +26,83 @@ class Database:
                 logger.warning("No MongoDB URI found in environment variables")
                 return
             
-            # For Render deployment, disable SSL certificate verification
-            # to fix SSL handshake issues
-            import ssl
-            self.client = MongoClient(
-                self.mongo_uri,
-                tls=True,
-                tlsAllowInvalidCertificates=True,
-                tlsCAFile=None,
-                serverSelectionTimeoutMS=30000,
-                connectTimeoutMS=30000,
-                socketTimeoutMS=30000
-            )
-            self.db = self.client.resume_generator
-            # Test connection
-            self.client.admin.command('ping')
-            logger.info("Successfully connected to MongoDB Atlas")
+            # Different connection strategies based on environment
+            if self.is_render:
+                logger.info("Detected Render environment, using SSL bypass")
+                self._connect_render()
+            else:
+                logger.info("Local/other environment, using standard connection")
+                self._connect_standard()
             
         except Exception as e:
             logger.error(f"Failed to connect to MongoDB: {e}")
             self.client = None
             self.db = None
+    
+    def _connect_standard(self):
+        """Standard MongoDB connection for local/other environments"""
+        self.client = MongoClient(self.mongo_uri)
+        self.db = self.client.resume_generator
+        self.client.admin.command('ping')
+        logger.info("Successfully connected to MongoDB Atlas (standard)")
+    
+    def _connect_render(self):
+        """Special MongoDB connection for Render environment"""
+        import ssl
+        
+        # Try multiple connection strategies for Render
+        connection_strategies = [
+            # Strategy 1: TLS with invalid certificates allowed
+            {
+                "tls": True,
+                "tlsAllowInvalidCertificates": True,
+                "serverSelectionTimeoutMS": 10000,
+                "connectTimeoutMS": 10000,
+                "socketTimeoutMS": 10000
+            },
+            # Strategy 2: SSL with certificate verification disabled
+            {
+                "ssl": True,
+                "ssl_cert_reqs": ssl.CERT_NONE,
+                "ssl_match_hostname": False,
+                "serverSelectionTimeoutMS": 15000,
+                "connectTimeoutMS": 15000,
+                "socketTimeoutMS": 15000
+            },
+            # Strategy 3: Basic SSL
+            {
+                "ssl": True,
+                "serverSelectionTimeoutMS": 20000,
+                "connectTimeoutMS": 20000,
+                "socketTimeoutMS": 20000
+            },
+            # Strategy 4: No SSL (fallback)
+            {
+                "serverSelectionTimeoutMS": 10000,
+                "connectTimeoutMS": 10000,
+                "socketTimeoutMS": 10000
+            }
+        ]
+        
+        for i, strategy in enumerate(connection_strategies, 1):
+            try:
+                logger.info(f"Render: Trying connection strategy {i}")
+                self.client = MongoClient(self.mongo_uri, **strategy)
+                self.db = self.client.resume_generator
+                # Test connection
+                self.client.admin.command('ping')
+                logger.info(f"Successfully connected to MongoDB Atlas using Render strategy {i}")
+                return
+            except Exception as e:
+                logger.warning(f"Render strategy {i} failed: {str(e)}")
+                if self.client:
+                    self.client.close()
+                    self.client = None
+                    self.db = None
+                continue
+        
+        # If all strategies fail
+        raise Exception("All Render connection strategies failed")
     
     def create_user_account(self, name, email, password):
         """Create a new user account with authentication"""
