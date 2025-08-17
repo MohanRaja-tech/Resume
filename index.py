@@ -1,82 +1,56 @@
 import os
 import sys
-import traceback
 import logging
 
-# Configure logging to capture detailed errors
+# Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Add the current directory to Python path
 sys.path.insert(0, os.path.dirname(__file__))
 
-def create_error_app(error_msg, traceback_msg=None):
-    """Create a minimal Flask app that shows error details"""
-    from flask import Flask, jsonify
-    app = Flask(__name__)
-    
-    @app.route('/')
-    def show_error():
-        return jsonify({
-            'status': 'error',
-            'error': error_msg,
-            'traceback': traceback_msg,
-            'python_version': sys.version,
-            'environment_vars': {
-                'SECRET_KEY': 'present' if os.getenv('SECRET_KEY') else 'missing',
-                'FLASK_ENV': os.getenv('FLASK_ENV', 'not_set'),
-                'MONGODB_URI': 'present' if os.getenv('MONGODB_URI') else 'missing',
-                'RAZORPAY_KEY_ID': 'present' if os.getenv('RAZORPAY_KEY_ID') else 'missing',
-                'CUSTOM_API_KEY': os.getenv('CUSTOM_API_KEY', 'not_set'),
-                'FREE_TRIAL_LIMIT': os.getenv('FREE_TRIAL_LIMIT', 'not_set')
-            },
-            'current_directory': os.getcwd(),
-            'files_present': os.listdir('.') if os.path.exists('.') else 'unknown'
-        })
-    
-    @app.route('/health')
-    def health():
-        return jsonify({'status': 'error_mode', 'message': 'Running in error debug mode'})
-    
-    return app
+logger.info("Starting index.py...")
 
-# Try to import and run the main application
+# Test with ultra-minimal app first
 try:
-    logger.info("Attempting to import main app...")
-    from app import app
-    logger.info("Successfully imported main app")
-    application = app
+    logger.info("Trying ultra-minimal test app...")
+    from test_app import app as test_app
+    logger.info("Successfully imported test app")
+    application = test_app
     
-except ImportError as e:
-    logger.error(f"ImportError when importing app: {e}")
-    traceback_str = traceback.format_exc()
-    logger.error(f"Traceback: {traceback_str}")
+except Exception as test_error:
+    logger.error(f"Error importing test app: {test_error}")
     
-    # Try minimal app as fallback
+    # Create the most basic Flask app possible
     try:
-        logger.info("Trying minimal app as fallback...")
-        from minimal_app import app as minimal_app
-        logger.info("Successfully imported minimal app")
-        application = minimal_app
-    except Exception as minimal_error:
-        logger.error(f"Error importing minimal app: {minimal_error}")
-        application = create_error_app(f"ImportError: {str(e)}", traceback_str)
-    
-except Exception as e:
-    logger.error(f"Unexpected error when importing app: {e}")
-    traceback_str = traceback.format_exc()
-    logger.error(f"Traceback: {traceback_str}")
-    
-    # Try minimal app as fallback
-    try:
-        logger.info("Trying minimal app as fallback...")
-        from minimal_app import app as minimal_app
-        logger.info("Successfully imported minimal app")
-        application = minimal_app
-    except Exception as minimal_error:
-        logger.error(f"Error importing minimal app: {minimal_error}")
-        application = create_error_app(f"Unexpected error: {str(e)}", traceback_str)
+        from flask import Flask, jsonify
+        app = Flask(__name__)
+        
+        @app.route('/')
+        def basic():
+            return jsonify({
+                'status': 'basic_flask_working',
+                'error': f"Test app failed: {str(test_error)}",
+                'python_version': sys.version
+            })
+        
+        application = app
+        logger.info("Created basic Flask app")
+        
+    except Exception as basic_error:
+        logger.error(f"Even basic Flask app failed: {basic_error}")
+        # Last resort
+        def application(environ, start_response):
+            status = '200 OK'
+            headers = [('Content-type', 'text/plain')]
+            start_response(status, headers)
+            return [b'Raw WSGI app working - Flask import failed']
+
+logger.info("Index.py setup complete")
 
 # For local testing
 if __name__ == "__main__":
-    application.run(debug=True, host='0.0.0.0', port=5000)
+    if hasattr(application, 'run'):
+        application.run(debug=True, host='0.0.0.0', port=5000)
+    else:
+        print("WSGI application ready")
