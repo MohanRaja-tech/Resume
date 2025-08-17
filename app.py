@@ -704,3 +704,7 @@ def internal_error(error):
 
 # Vercel serverless function entry point
 # The app is imported by index.py for Vercel deployment
+
+# For local development
+if __name__ == "__main__":
+    app.run(debug=True, host='0.0.0.0', port=5000)
